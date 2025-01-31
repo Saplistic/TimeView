@@ -1,14 +1,64 @@
 <script lang="ts">
+    import { onMount } from "svelte";
+
+    let events = [
+        { id: 1, title: "New Year 2025", date: new Date("2025-01-01T00:00:00") },
+        { id: 2, title: "Summer Festival", date: new Date("2025-02-21T00:00:00") },
+        { id: 3, title: "Conference", date: new Date("2025-03-15T09:00:00") },
+    ];
+
+    function calculateTimeLeft(targetDate: Date): string {
+         const eventTime = new Date(targetDate).getTime();
+        const currentTime = new Date().getTime();
+
+        const timeLeft = eventTime - currentTime;
+
+        if (timeLeft <= 0) return "00:00:00:00";
+
+        let days = Math.floor(timeLeft / (1000 * 60 * 60 * 24));
+        let hours = Math.floor((timeLeft / (1000 * 60 * 60)) % 24);
+        let minutes = Math.floor((timeLeft / (1000 * 60)) % 60);
+        let seconds = Math.floor((timeLeft / 1000) % 60);
+
+        return `${days}:${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+    }
+
+    let countdowns = events.map(event => ({
+        ...event,
+        timeLeft: calculateTimeLeft(event.date)
+    }));
+
+    let interval: number;
+    onMount(() => {
+        interval = setInterval(() => {
+            countdowns = countdowns.map(event => ({
+                ...event,
+                timeLeft: calculateTimeLeft(event.date)
+            }));
+        }, 1000);
+    });
+
+    // Cleanup interval on component destroy
+    import { onDestroy } from "svelte";
+    onDestroy(() => clearInterval(interval));
 </script>
 
-<main>
-  <h1>Vite + Svelte</h1>
+<main class="bg-gray-900">
+   <div class="flex flex-col w-full min-h-screen main p-4">
+      {#each countdowns as event}
+         <div
+               class="relative w-full h-32 md:h-40 lg:h-52 flex items-center justify-center rounded-lg overflow-hidden shadow-lg transition-all duration-300 mb-2 last:mb-0"
+               style="background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0));"
+         >
+            <!-- Background image (optional, if needed per event) -->
+            <div class="absolute inset-0 bg-cover bg-center opacity-30"></div>
 
-  <div>
-    <h1 class="shadow-xl">Hey</h1>
-  </div>
+            <!-- Overlay text -->
+            <div class="relative text-center text-white px-4">
+               <h2 class="text-lg md:text-xl lg:text-2xl font-semibold tracking-wider">{event.title}</h2>
+               <p class="text-2xl md:text-3xl lg:text-4xl font-bold mt-1">{event.timeLeft}</p>
+            </div>
+         </div>
+      {/each}
+   </div>
 </main>
-
-<style>
-
-</style>

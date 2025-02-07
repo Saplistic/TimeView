@@ -2,8 +2,9 @@
     import { onMount } from "svelte";
     import { onDestroy } from "svelte";
     import Modal from "./components/Modal.svelte";
+    import EventCreationForm from "./EventCreationForm.svelte";
 
-    let showModal = false;
+    let showModal: boolean = false;
 
     const openModal = () => {
         showModal = true;
@@ -21,7 +22,7 @@
 
         const timeLeft = eventTime - currentTime;
 
-        if (timeLeft <= 0) return "00:00:00:00";
+        if (timeLeft < 0) return "00:00:00:00";
 
         let days = Math.floor(timeLeft / (1000 * 60 * 60 * 24));
         let hours = Math.floor((timeLeft / (1000 * 60 * 60)) % 24);
@@ -54,17 +55,14 @@
 <main class="bg-gray-900">
    <div class="flex flex-col w-full min-h-screen main p-4">
       <div class="m-4">
-         <button
-               on:click={openModal}
-               class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-            Open Modal
+         <button on:click={openModal} class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+            Add Event
          </button>
       </div>
 
       {#each countdowns as event}
-         <div
-               class="relative w-full h-32 md:h-40 lg:h-52 flex items-center justify-center rounded-lg overflow-hidden shadow-lg transition-all duration-300 mb-2 last:mb-0"
-               style="background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0));">
+         <div class="relative w-full h-32 md:h-40 lg:h-52 flex items-center justify-center rounded-lg overflow-hidden shadow-lg transition-all duration-300 mb-2 last:mb-0"
+              style="background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0));">
             <!-- Background image (optional, if needed per event) -->
             <div class="absolute inset-0 bg-cover bg-center opacity-30"></div>
 
@@ -78,10 +76,11 @@
    </div>
 
    <Modal bind:show={showModal}>
-      <button slot="save"
-              class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+      <EventCreationForm />
+
+      <!--Confirmation button section-->
+      <button slot="confirm" form="event_create" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
          Save
       </button>
    </Modal>
-
 </main>

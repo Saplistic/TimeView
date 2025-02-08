@@ -5,17 +5,17 @@
     import EventCreationForm from "./EventCreationForm.svelte";
     import type { oEvent } from "./types";
 
-    let showModal: boolean = false;
+    let showModal: boolean = $state(false);
 
     const openModal = () => {
         showModal = true;
     }
 
-    let events = [
+    let events = $state<oEvent[]>([
         { name: "New Year 2025", dateTime: new Date("2025-01-01T00:00:00"), description: "" },
         { name: "Summer Festival", dateTime: new Date("2025-02-21T00:00:00"), description: "" },
         { name: "Conference", dateTime: new Date("2025-03-15T09:00:00"), description: "" },
-    ];
+    ]);
 
     function addEvent(event: oEvent) {
         events.push(event);
@@ -36,23 +36,19 @@
         return `${days}:${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
     }
 
-    let countdowns = events.map(event => ({
-        ...event,
-        timeLeft: calculateTimeLeft(event.date)
-    }));
+    let timeLeft = $state(events.map(event => calculateTimeLeft(event.dateTime)));
 
     let interval: number;
     onMount(() => {
+        // Update timeLeft every second
         interval = setInterval(() => {
-            countdowns = countdowns.map(event => ({
-                ...event,
-                timeLeft: calculateTimeLeft(event.date)
-            }));
+            timeLeft = events.map(event => calculateTimeLeft(event.dateTime));
         }, 1000);
     });
 
-    // Cleanup interval on component destroy
-    onDestroy(() => clearInterval(interval));
+    onDestroy(() => {
+        clearInterval(interval);
+    });
 
 </script>
 
@@ -64,7 +60,7 @@
          </button>
       </div>
 
-      {#each countdowns as event}
+      {#each events as event, i}
          <div class="relative w-full h-32 md:h-40 lg:h-52 flex items-center justify-center rounded-lg overflow-hidden shadow-lg transition-all duration-300 mb-2 last:mb-0"
               style="background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0));">
             <!-- Background image (optional, if needed per event) -->
@@ -73,7 +69,7 @@
             <!-- Overlay text -->
             <div class="relative text-center text-white px-4">
                <h2 class="text-lg md:text-xl lg:text-2xl font-semibold tracking-wider">{event.name}</h2>
-               <p class="text-2xl md:text-3xl lg:text-4xl font-bold mt-1">{event.timeLeft}</p>
+               <p class="text-2xl md:text-3xl lg:text-4xl font-bold mt-1">{timeLeft[i]}</p>
             </div>
          </div>
       {/each}

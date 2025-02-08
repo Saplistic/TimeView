@@ -22,27 +22,27 @@
         showModal = false;
     }
 
-    function calculateTimeLeft(targetDate: Date): string {
-        const eventTime = new Date(targetDate).getTime();
-        const currentTime = new Date().getTime();
+    function formatToTimer(targetDate: Date): string {
+        var targetTime = targetDate.getTime();
 
-        const timeLeft = eventTime - currentTime;
+        let timeLeft = (targetTime - new Date().getTime());
+        if (timeLeft < 0) return "00:00:00:00";
 
-        let days = Math.floor(timeLeft / (1000 * 60 * 60 * 24));
-        let hours = Math.floor((timeLeft / (1000 * 60 * 60)) % 24);
-        let minutes = Math.floor((timeLeft / (1000 * 60)) % 60);
-        let seconds = Math.floor((timeLeft / 1000) % 60);
+        let days, hours, minutes, seconds = 0;
 
-        return `${days}:${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+        return `${Math.floor(days = timeLeft / (1000 * 60 * 60 * 24))}:${
+            String(Math.floor(hours = (days % 1) * 24)).padStart(2, "0")}:${
+            String(Math.floor(minutes = (hours % 1) * 60)).padStart(2, "0")}:${
+            String(Math.floor(seconds = (minutes % 1) * 60)).padStart(2, "0")}`;
     }
 
-    let timeLeft = $state(events.map(event => calculateTimeLeft(event.dateTime)));
+    let timeLeft = $state(events.map(event => formatToTimer(event.dateTime)));
 
     let interval: number;
     onMount(() => {
         // Update timeLeft every second
         interval = setInterval(() => {
-            timeLeft = events.map(event => calculateTimeLeft(event.dateTime));
+            timeLeft = events.map(event => formatToTimer(event.dateTime));
         }, 1000);
     });
 

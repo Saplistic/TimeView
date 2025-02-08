@@ -3,6 +3,7 @@
     import { onDestroy } from "svelte";
     import Modal from "./components/Modal.svelte";
     import EventCreationForm from "./EventCreationForm.svelte";
+    import type { oEvent } from "./types";
 
     let showModal: boolean = false;
 
@@ -11,9 +12,9 @@
     }
 
     let events = [
-        { id: 1, title: "New Year 2025", date: new Date("2025-01-01T00:00:00") },
-        { id: 2, title: "Summer Festival", date: new Date("2025-02-21T00:00:00") },
-        { id: 3, title: "Conference", date: new Date("2025-03-15T09:00:00") },
+        { name: "New Year 2025", dateTime: new Date("2025-01-01T00:00:00"), description: "" },
+        { name: "Summer Festival", dateTime: new Date("2025-02-21T00:00:00"), description: "" },
+        { name: "Conference", dateTime: new Date("2025-03-15T09:00:00"), description: "" },
     ];
 
     function calculateTimeLeft(targetDate: Date): string {
@@ -68,7 +69,7 @@
 
             <!-- Overlay text -->
             <div class="relative text-center text-white px-4">
-               <h2 class="text-lg md:text-xl lg:text-2xl font-semibold tracking-wider">{event.title}</h2>
+               <h2 class="text-lg md:text-xl lg:text-2xl font-semibold tracking-wider">{event.name}</h2>
                <p class="text-2xl md:text-3xl lg:text-4xl font-bold mt-1">{event.timeLeft}</p>
             </div>
          </div>

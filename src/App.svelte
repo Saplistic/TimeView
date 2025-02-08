@@ -17,13 +17,16 @@
         { name: "Conference", dateTime: new Date("2025-03-15T09:00:00"), description: "" },
     ];
 
+    function addEvent(event: oEvent) {
+        events.push(event);
+        showModal = false;
+    }
+
     function calculateTimeLeft(targetDate: Date): string {
         const eventTime = new Date(targetDate).getTime();
         const currentTime = new Date().getTime();
 
         const timeLeft = eventTime - currentTime;
-
-        if (timeLeft < 0) return "00:00:00:00";
 
         let days = Math.floor(timeLeft / (1000 * 60 * 60 * 24));
         let hours = Math.floor((timeLeft / (1000 * 60 * 60)) % 24);
@@ -56,7 +59,7 @@
 <main class="bg-gray-900">
    <div class="flex flex-col w-full min-h-screen main p-4">
       <div class="m-4">
-         <button on:click={openModal} class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+         <button onclick={openModal} class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
             Add Event
          </button>
       </div>
@@ -77,7 +80,7 @@
    </div>
 
    <Modal bind:show={showModal}>
-      <EventCreationForm />
+      <EventCreationForm submitEvent={addEvent} />
 
       <!--Confirmation button section-->
       <button slot="confirm" form="event_create" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">

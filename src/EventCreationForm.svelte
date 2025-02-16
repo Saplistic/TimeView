@@ -57,5 +57,8 @@
                 class="w-5 h-5 appearance-none bg-gray-800 border border-gray-600 rounded-full checked:bg-blue-500 checked:border-blue-500 focus:ring focus:ring-blue-500 transition" />
          <span class="text-gray-300">Use local time (e.g., New Year)</span>
       </label>
+
+      <input type="text" placeholder="Cover Image URL" bind:value={event.coverImgUrl}
+             class="w-full p-2 border border-gray-700 bg-gray-800 text-white rounded-lg" />
    </div>
 </form>

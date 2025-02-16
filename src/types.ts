@@ -7,4 +7,5 @@ export type oEvent = {
      */
     isLocal: boolean;
     description: string;
+    coverImgUrl: string;
 }

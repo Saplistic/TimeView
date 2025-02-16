@@ -12,9 +12,9 @@
     }
 
     let events = $state<oEvent[]>([
-        { name: "New Year 2026", dateTime: new Date("2026-01-01T00:00:00Z"), isLocal: true, description: "" },
-        { name: "Summer Festival", dateTime: new Date("2025-02-21T00:00:00"), isLocal: false, description: "" },
-        { name: "Conference", dateTime: new Date("2025-03-15T09:00:00"), isLocal: false, description: "" },
+        { name: "New Year 2026", dateTime: new Date("2026-01-01T00:00:00Z"), isLocal: true, description: "", coverImgUrl: "" },
+        { name: "Summer Festival", dateTime: new Date("2025-02-21T00:00:00"), isLocal: false, description: "", coverImgUrl: "https://www.trendycovers.com/covers/1322932923.jpg" },
+        { name: "Conference", dateTime: new Date("2025-03-15T09:00:00"), isLocal: false, description: "", coverImgUrl: "" },
     ]);
 
     function addEvent(event: oEvent) {
@@ -67,10 +67,11 @@
       </div>
 
       {#each events as event, i}
-         <div class="relative w-full h-32 md:h-40 lg:h-52 flex items-center justify-center rounded-lg overflow-hidden shadow-lg transition-all duration-300 mb-2 last:mb-0"
+         <div class="relative w-full h-32 md:h-40 lg:h-52 flex items-center justify-center rounded-lg overflow-hidden shadow-lg transition-all duration-300 mb-2 last:mb-0 cursor-pointer"
               style="background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0));">
-            <!-- Background image (optional, if needed per event) -->
-            <div class="absolute inset-0 bg-cover bg-center opacity-30"></div>
+            {#if event.coverImgUrl}
+               <div class="absolute inset-0 bg-cover bg-center opacity-30" style="background-image: url({event.coverImgUrl})"></div>
+            {/if}
 
             <!-- Overlay text -->
             <div class="relative text-center text-white px-4">

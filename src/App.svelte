@@ -12,9 +12,9 @@
     }
 
     let events = $state<oEvent[]>([
-        { name: "New Year 2025", dateTime: new Date("2025-01-01T00:00:00"), description: "" },
-        { name: "Summer Festival", dateTime: new Date("2025-02-21T00:00:00"), description: "" },
-        { name: "Conference", dateTime: new Date("2025-03-15T09:00:00"), description: "" },
+        { name: "New Year 2026", dateTime: new Date("2026-01-01T00:00:00Z"), isLocal: true, description: "" },
+        { name: "Summer Festival", dateTime: new Date("2025-02-21T00:00:00"), isLocal: false, description: "" },
+        { name: "Conference", dateTime: new Date("2025-03-15T09:00:00"), isLocal: false, description: "" },
     ]);
 
     function addEvent(event: oEvent) {
@@ -42,7 +42,13 @@
     onMount(() => {
         // Update timeLeft every second
         interval = setInterval(() => {
-            timeLeft = events.map(event => formatToTimer(event.dateTime));
+            timeLeft = events.map((event) => {
+                if (event.isLocal) { // Apply local time zone offset to Event date's set to local
+                    var updatedDateTime = new Date(event.dateTime.getTime() + (new Date().getTimezoneOffset() * 60 * 1000));
+                    return formatToTimer(updatedDateTime);
+                }
+                return formatToTimer(event.dateTime);
+            });
         }, 1000);
     });
 

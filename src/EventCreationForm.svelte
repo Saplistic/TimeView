@@ -6,21 +6,32 @@
    let event: oEvent = {
        name: "",
        description: "",
-       dateTime: new Date()
+       dateTime: new Date(),
+       isLocal: false,
    };
 
-   let eventString: string = new Date().toISOString();
+   let eventString: string;
 
    function submit() {
        if (!event.name) {
-           return alert("Please enter name");
+           return alert("Please enter a name");
        }
 
-       event.dateTime.setTime(Date.parse(eventString));
+       var newDate;
 
-       if (isNaN(event.dateTime.getTime())) {
-           return alert("Please a valid date");
+       if (event.isLocal)
+       {
+           newDate = new Date(eventString+"Z"); // Interpret time as UTC (Ignore your local timezone)
+       } else {
+           newDate = new Date(eventString); // Convert your local time to store as UTC
        }
+       //date.toUTCString() // Displays the time in UTC
+       //date.toString() // Displays the time according to your local timezone
+
+       if (isNaN(newDate.getTime())) {
+           return alert("Please enter a valid date");
+       }
+       event.dateTime = newDate;
 
        submitEvent(event);
    }
@@ -34,9 +45,17 @@
    <div class="space-y-4 container">
       <input type="text" placeholder="Event Name" bind:value={event.name}
              class="w-full p-2 border border-gray-700 bg-gray-800 text-white rounded-lg" />
+
       <textarea placeholder="Description" bind:value={event.description}
                 class="w-full p-2 border border-gray-700 bg-gray-800 text-white rounded-lg"></textarea>
+
       <input type="datetime-local" bind:value={eventString}
              class="w-full p-2 border border-gray-700 bg-gray-800 text-white rounded-lg" />
+
+      <label class="flex items-center space-x-2 text-white cursor-pointer">
+         <input type="checkbox" bind:checked={event.isLocal}
+                class="w-5 h-5 appearance-none bg-gray-800 border border-gray-600 rounded-full checked:bg-blue-500 checked:border-blue-500 focus:ring focus:ring-blue-500 transition" />
+         <span class="text-gray-300">Use local time (e.g., New Year)</span>
+      </label>
    </div>
 </form>

@@ -1,4 +1,5 @@
 export type oEvent = {
+    id: number;
     name: string;
     dateTime: Date; // Always stored in UTC
     /**

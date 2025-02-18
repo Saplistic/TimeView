@@ -14,6 +14,10 @@
         { id: 3, name: "Conference", dateTime: new Date("2025-03-15T09:00:00"), isLocal: false, description: "", coverImgUrl: "" },
     ]);
 
+    function closeModal() {
+        showModal = false;
+    }
+
     function openEventModal() {
         showModal = true;
         selectedEventIndex = null; // Reset selection when adding a new event
@@ -88,7 +92,7 @@
       </div>
 
       {#each events as event, i}
-         <div onclick={() => { openEditModal(i) }}
+         <div onclick={() => {openEditModal(i)}}
               class="relative w-full h-32 md:h-40 lg:h-52 flex items-center justify-center rounded-lg overflow-hidden shadow-lg transition-all duration-300 mb-2 last:mb-0 cursor-pointer"
               style="background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0));">
 
@@ -113,11 +117,15 @@
    </div>
 
    <Modal bind:show={showModal}>
+      <!-- Create/edit -->
       <EventCreationForm saveEvent={saveEvent} eventToEdit={ (selectedEventIndex !== null) ? events[selectedEventIndex] : null }/>
-
-      <!--Confirmation button section-->
-      <button slot="confirm" form="event_create" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-         Save
-      </button>
+      <div class="flex justify-end mt-6">
+         <button onclick={closeModal} class="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 mr-2">
+            Cancel
+         </button>
+         <button form="event_create" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+            Save
+         </button>
+      </div>
    </Modal>
 </main>

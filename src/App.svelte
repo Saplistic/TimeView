@@ -6,6 +6,7 @@
 
     let showModal: boolean = $state(false);
     let editMode: boolean = $state(false);
+    let modalMode: number = $state(0);
     let selectedEventIndex: number | null = $state(null);
 
     let events = $state<oEvent[]>([
@@ -19,11 +20,13 @@
     }
 
     function openEventModal() {
+        modalMode = 0;
         showModal = true;
         selectedEventIndex = null; // Reset selection when adding a new event
     }
 
     function openEditModal(index: number) {
+        modalMode = 0;
         if (!editMode) return; // Allow selection only in edit mode
         selectedEventIndex = index;
         showModal = true;
@@ -78,6 +81,18 @@
         clearInterval(interval);
     });
 
+    function promptDeleteEvent(index: number) {
+        modalMode = 1;
+        selectedEventIndex = index;
+        showModal = true;
+    }
+
+    function deleteEvent(event: Event) {
+        events.splice(selectedEventIndex!, 1);
+        event.preventDefault();
+        showModal = false;
+    }
+
 </script>
 
 <main class="bg-gray-900">
@@ -107,25 +122,49 @@
             </div>
 
             {#if editMode}
-               <button class="absolute top-2 right-2 bg-transparent border border-yellow-500 text-yellow-500 px-3 py-1 rounded-lg text-sm
-                          hover:bg-yellow-500 hover:text-black transition-all duration-200">
-                  ✏ Edit
-               </button>
+               <div class="absolute top-2 right-2 flex space-x-2">
+                  <!-- Edit Button -->
+                  <button class="bg-transparent border border-yellow-500 text-yellow-500 px-3 py-1 rounded-lg text-sm hover:bg-yellow-500 hover:text-black transition-all duration-200">
+                      ✏ Edit
+                  </button>
+
+                  <!-- Delete Button -->
+                  <button onclick={(event) => { promptDeleteEvent(i); event.stopPropagation() } }
+                          class="bg-transparent border border-red-500 text-red-500 px-3 py-1 rounded-lg text-sm hover:bg-red-500 hover:text-white transition-all duration-200">
+                     🗑 Delete
+                  </button>
+               </div>
             {/if}
          </div>
       {/each}
    </div>
 
    <Modal bind:show={showModal}>
-      <!-- Create/edit -->
-      <EventCreationForm saveEvent={saveEvent} eventToEdit={ (selectedEventIndex !== null) ? events[selectedEventIndex] : null }/>
-      <div class="flex justify-end mt-6">
-         <button onclick={closeModal} class="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 mr-2">
-            Cancel
-         </button>
-         <button form="event_create" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-            Save
-         </button>
-      </div>
+      {#if modalMode === 0}
+      <!-- Create/Edit -->
+         <EventCreationForm saveEvent={saveEvent} eventToEdit={ (selectedEventIndex !== null) ? events[selectedEventIndex] : null }/>
+         <div class="flex justify-end mt-6">
+            <button onclick={closeModal} class="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 mr-2">
+               Cancel
+            </button>
+            <button form="event_create" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+               Save
+            </button>
+         </div>
+
+      {:else if modalMode === 1}
+      <!-- Delete Confirmation -->
+         <p>Are you sure you permanently want to delete this event?</p>
+
+         <div class="flex justify-end mt-6">
+            <button onclick={closeModal} class="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 mr-2">
+               Cancel
+            </button>
+            <button onclick="{deleteEvent}" class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600">
+               Confirm
+            </button>
+         </div>
+      {/if}
    </Modal>
+
 </main>

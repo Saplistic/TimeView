@@ -9,11 +9,8 @@
     let modalMode: number = $state(0);
     let selectedEventIndex: number | null = $state(null);
 
-    let events = $state<oEvent[]>([
-        { id: 1, name: "New Year 2026", dateTime: new Date("2026-01-01T00:00:00Z"), isLocal: true, description: "", coverImgUrl: "" },
-        { id: 2, name: "Summer Festival", dateTime: new Date("2025-02-21T00:00:00"), isLocal: false, description: "", coverImgUrl: "https://www.trendycovers.com/covers/1322932923.jpg" },
-        { id: 3, name: "Conference", dateTime: new Date("2025-03-15T09:00:00"), isLocal: false, description: "", coverImgUrl: "" },
-    ]);
+    let events: oEvent[] = $state<oEvent[]>([]); // List of events
+    var timeLeft = $state<string[]>([]); // List of updating time left for each event
 
     function closeModal() {
         showModal = false;
@@ -61,15 +58,25 @@
             String(Math.floor(seconds = (minutes % 1) * 60)).padStart(2, "0")}`;
     }
 
-    let timeLeft = $state(events.map(event => formatToTimer(event.dateTime)));
-
     let interval: number;
+
     onMount(() => {
+        const storedEvents = localStorage.getItem("events");
+
+        // Load events from localstorage & convert date objects
+        if (storedEvents) {
+            events = JSON.parse(storedEvents).map((event: oEvent) => ({
+                ...event,
+                dateTime: new Date(event.dateTime)
+            }));
+        }
+        timeLeft = events.map(event => formatToTimer(event.dateTime));
+
         // Update timeLeft every second
         interval = setInterval(() => {
             timeLeft = events.map((event) => {
-                if (event.isLocal) { // Apply local time zone offset to Event date's set to local
-                    var updatedDateTime = new Date(event.dateTime.getTime() + (new Date().getTimezoneOffset() * 60 * 1000));
+                if (event.isLocal) { // Apply local timezone offset to the date when it's marked as 'isLocal'
+                    let updatedDateTime = new Date(event.dateTime.getTime() + (new Date().getTimezoneOffset() * 60 * 1000));
                     return formatToTimer(updatedDateTime);
                 }
                 return formatToTimer(event.dateTime);
@@ -79,6 +86,10 @@
 
     onDestroy(() => {
         clearInterval(interval);
+    });
+
+    $effect(() => {
+        localStorage.setItem("events", JSON.stringify(events));
     });
 
     function promptDeleteEvent(index: number) {

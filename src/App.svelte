@@ -1,121 +1,120 @@
 <script lang="ts">
-    import { onMount, onDestroy } from "svelte";
-    import Modal from "./components/Modal.svelte";
-    import EventCreationForm from "./EventCreationForm.svelte";
-    import type { oEvent } from "./types";
+   import { onMount, onDestroy } from "svelte";
+   import Modal from "./components/Modal.svelte";
+   import EventCreationForm from "./EventCreationForm.svelte";
+   import type { oEvent } from "./types";
 
-    let showModal: boolean = $state(false);
-    let editMode: boolean = $state(false);
-    let modalMode: number = $state(0);
-    let selectedEventIndex: number | null = $state(null);
+   let showModal: boolean = $state(false);
+   let editMode: boolean = $state(false);
+   let modalMode: number = $state(0); // 0: Create/Edit, 1: Delete
+   let selectedEventIndex: number | null = $state(null);
+   let interval: number; // Interval for updating timeLeft
 
-    let events: oEvent[] = $state<oEvent[]>([]); // List of events
-    let sortedEvents: oEvent[] = $derived<oEvent[]>(events.slice().sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime())); // Events sorted by Date for displaying
-    var timeLeft = $state<string[]>([]); // List of updating time left for each event
+   let events: oEvent[] = $state<oEvent[]>([]); // List of events
+   let sortedEvents: oEvent[] = $derived<oEvent[]>(events.slice().sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime())); // Events sorted by Date for displaying
+   var timeLeft = $state<string[]>([]); // List of updating time left for each event
 
-    function closeModal() {
-        showModal = false;
-    }
+   onMount(() => {
+      const storedEvents = localStorage.getItem("events");
 
-    function openEventModal() {
-        modalMode = 0;
-        showModal = true;
-        selectedEventIndex = null; // Reset selection when adding a new event
-    }
+      // Load events from localstorage & convert date objects
+      if (storedEvents) {
+         events = JSON.parse(storedEvents).map((event: oEvent) => ({
+            ...event,
+            dateTime: new Date(event.dateTime)
+         }));
+      }
+      timeLeft = sortedEvents.map(event => formatToTimer(event.dateTime));
 
-    function openEditModal(id: number) {
-        if (!editMode) return; // Only continue if edit mode is enabled
-        modalMode = 0;  // Set modal to display create/edit form
-        selectedEventIndex = events.indexOf(events.find(event => event.id === id)!);
-        showModal = true;
-    }
+      if (!localStorage.getItem("idCount")) { // Initialize idCount if it doesn't exist
+         localStorage.setItem("idCount", String(events.at(-1).id + 1 ?? 0));
+      }
 
-    function saveEvent(event: oEvent) {
+      // Update timeLeft every second
+      interval = setInterval(() => {
+         timeLeft = sortedEvents.map((event) => {
+            if (event.isLocal) { // Apply local timezone offset to the date when it's marked as 'isLocal'
+               let updatedDateTime = new Date(event.dateTime.getTime() + (new Date().getTimezoneOffset() * 60 * 1000));
+               return formatToTimer(updatedDateTime);
+            }
+            return formatToTimer(event.dateTime);
+         });
+      }, 1000);
+   });
 
-        if(!events.includes(event)) { // If event doesnt refer to existing event -> Create new
-            event.id = Number(localStorage.getItem("idCount"));
-            localStorage.setItem("idCount", (event.id + 1).toString());
-            events.push(event); // Add new event
-        }
+   onDestroy(() => {
+      clearInterval(interval);
+   });
 
-        selectedEventIndex = null;
-        showModal = false;
-    }
+   // Save events to localstorage upon changes
+   $effect(() => {
+      localStorage.setItem("events", JSON.stringify(events));
+   });
 
-    function toggleEditMode() {
-        editMode = !editMode;
-        if (!editMode) selectedEventIndex = null; // Reset selection when exiting edit mode
-    }
+   function closeModal() {
+      showModal = false;
+   }
 
-    function formatToTimer(targetDate: Date): string {
-        var targetTime = targetDate.getTime();
-        let timeLeft = (targetTime - new Date().getTime());
-        if (timeLeft < 0) return "00:00:00:00";
+   function openCreateModal() {
+      modalMode = 0;
+      selectedEventIndex = null; // Remove selection when Creating a new event
+      showModal = true;
+   }
 
-        let days, hours, minutes, seconds = 0;
+   function openEditModal(id: number) {
+      if (!editMode) return; // Only continue if edit mode is enabled
+      modalMode = 0;  // Set modal to display create/edit form
+      selectedEventIndex = events.indexOf(events.find(event => event.id === id)!);
+      showModal = true;
+   }
 
-        return `${Math.floor(days = timeLeft / (1000 * 60 * 60 * 24))}:${
-            String(Math.floor(hours = (days % 1) * 24)).padStart(2, "0")}:${
-            String(Math.floor(minutes = (hours % 1) * 60)).padStart(2, "0")}:${
-            String(Math.floor(seconds = (minutes % 1) * 60)).padStart(2, "0")}`;
-    }
+   function openDeleteModal(id: number) {
+      modalMode = 1; // Set modal to display delete confirmation
+      selectedEventIndex = events.indexOf(events.find(event => event.id === id)!);
+      showModal = true;
+   }
 
-    let interval: number;
+   function saveEvent(event: oEvent) {
 
-    onMount(() => {
-        const storedEvents = localStorage.getItem("events");
+      if(!events.includes(event)) { // If event doesnt refer to existing event -> Create new
+         event.id = Number(localStorage.getItem("idCount"));
+         localStorage.setItem("idCount", (event.id + 1).toString());
+         events.push(event); // Add new event
+      }
+      selectedEventIndex = null;
+      showModal = false;
+   }
 
-        // Load events from localstorage & convert date objects
-        if (storedEvents) {
-            events = JSON.parse(storedEvents).map((event: oEvent) => ({
-                ...event,
-                dateTime: new Date(event.dateTime)
-            }));
-        }
-        timeLeft = sortedEvents.map(event => formatToTimer(event.dateTime));
+   function deleteEvent(event: Event) {
+      events.splice(selectedEventIndex!, 1);
+      event.preventDefault(); // Prevent form submission
+      showModal = false;
+   }
 
-        if (!localStorage.getItem("idCount")) { // Initialize idCount if it doesn't exist
-            localStorage.setItem("idCount", String(events.at(-1).id + 1 ?? 0));
-        }
+   function toggleEditMode() {
+      editMode = !editMode;
+      if (!editMode) selectedEventIndex = null; // Reset selection when exiting edit mode
+   }
 
-        // Update timeLeft every second
-        interval = setInterval(() => {
-            timeLeft = sortedEvents.map((event) => {
-                if (event.isLocal) { // Apply local timezone offset to the date when it's marked as 'isLocal'
-                    let updatedDateTime = new Date(event.dateTime.getTime() + (new Date().getTimezoneOffset() * 60 * 1000));
-                    return formatToTimer(updatedDateTime);
-                }
-                return formatToTimer(event.dateTime);
-            });
-        }, 1000);
-    });
+   function formatToTimer(targetDate: Date): string {
+      var targetTime = targetDate.getTime();
+      let timeLeft = (targetTime - new Date().getTime());
+      if (timeLeft < 0) return "";
 
-    onDestroy(() => {
-        clearInterval(interval);
-    });
+      let days, hours, minutes, seconds = 0;
 
-    $effect(() => {
-        localStorage.setItem("events", JSON.stringify(events));
-    });
-
-    function promptDeleteEvent(id: number) {
-        modalMode = 1; // Set modal to display delete confirmation
-        selectedEventIndex = events.indexOf(events.find(event => event.id === id)!);
-        showModal = true;
-    }
-
-    function deleteEvent(event: Event) {
-        events.splice(selectedEventIndex!, 1);
-        event.preventDefault();
-        showModal = false;
-    }
+      return Math.floor(days = timeLeft / (1000 * 60 * 60 * 24)) + ":" +
+              String(Math.floor(hours = (days % 1) * 24)).padStart(2, "0") + ":" +
+              String(Math.floor(minutes = (hours % 1) * 60)).padStart(2, "0") + ":" +
+              String(Math.floor(seconds = (minutes % 1) * 60)).padStart(2, "0");
+   }
 
 </script>
 
 <main class="bg-gray-900">
    <div class="flex flex-col w-full min-h-screen main p-4">
       <div class="m-4 flex gap-4">
-         <button onclick={openEventModal} class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+         <button onclick={openCreateModal} class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
             Add Event
          </button>
          <button onclick={toggleEditMode} class="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded">
@@ -142,11 +141,11 @@
                <div class="absolute top-2 right-2 flex space-x-2">
                   <!-- Edit Button -->
                   <button class="bg-transparent border border-yellow-500 text-yellow-500 px-3 py-1 rounded-lg text-sm hover:bg-yellow-500 hover:text-black transition-all duration-200">
-                      ✏ Edit
+                     ✏ Edit
                   </button>
 
                   <!-- Delete Button -->
-                  <button onclick={(event) => { promptDeleteEvent(event.id); event.stopPropagation() } }
+                  <button onclick={(event) => { openDeleteModal(event.id); event.stopPropagation() } }
                           class="bg-transparent border border-red-500 text-red-500 px-3 py-1 rounded-lg text-sm hover:bg-red-500 hover:text-white transition-all duration-200">
                      🗑 Delete
                   </button>
@@ -158,7 +157,7 @@
 
    <Modal bind:show={showModal}>
       {#if modalMode === 0}
-      <!-- Create/Edit -->
+         <!-- Create/Edit -->
          <EventCreationForm saveEvent={saveEvent} eventToEdit={ (selectedEventIndex !== null) ? events[selectedEventIndex] : null }/>
          <div class="flex justify-end mt-6">
             <button onclick={closeModal} class="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 mr-2">
@@ -170,7 +169,7 @@
          </div>
 
       {:else if modalMode === 1}
-      <!-- Delete Confirmation -->
+         <!-- Delete Confirmation -->
          <p>Are you sure you permanently want to delete this event?</p>
 
          <div class="flex justify-end mt-6">

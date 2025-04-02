@@ -10,6 +10,7 @@
     let selectedEventIndex: number | null = $state(null);
 
     let events: oEvent[] = $state<oEvent[]>([]); // List of events
+    let sortedEvents: oEvent[] = $derived<oEvent[]>(events.slice().sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime())); // Events sorted by Date for displaying
     var timeLeft = $state<string[]>([]); // List of updating time left for each event
 
     function closeModal() {
@@ -22,17 +23,18 @@
         selectedEventIndex = null; // Reset selection when adding a new event
     }
 
-    function openEditModal(index: number) {
-        modalMode = 0;
-        if (!editMode) return; // Allow selection only in edit mode
-        selectedEventIndex = index;
+    function openEditModal(id: number) {
+        if (!editMode) return; // Only continue if edit mode is enabled
+        modalMode = 0;  // Set modal to display create/edit form
+        selectedEventIndex = events.indexOf(events.find(event => event.id === id)!);
         showModal = true;
     }
 
     function saveEvent(event: oEvent) {
 
-        if(!events.includes(event)) {
-            event.id = events.length + 1;
+        if(!events.includes(event)) { // If event doesnt refer to existing event -> Create new
+            event.id = Number(localStorage.getItem("idCount"));
+            localStorage.setItem("idCount", (event.id + 1).toString());
             events.push(event); // Add new event
         }
 
@@ -70,11 +72,15 @@
                 dateTime: new Date(event.dateTime)
             }));
         }
-        timeLeft = events.map(event => formatToTimer(event.dateTime));
+        timeLeft = sortedEvents.map(event => formatToTimer(event.dateTime));
+
+        if (!localStorage.getItem("idCount")) { // Initialize idCount if it doesn't exist
+            localStorage.setItem("idCount", String(events.at(-1).id + 1 ?? 0));
+        }
 
         // Update timeLeft every second
         interval = setInterval(() => {
-            timeLeft = events.map((event) => {
+            timeLeft = sortedEvents.map((event) => {
                 if (event.isLocal) { // Apply local timezone offset to the date when it's marked as 'isLocal'
                     let updatedDateTime = new Date(event.dateTime.getTime() + (new Date().getTimezoneOffset() * 60 * 1000));
                     return formatToTimer(updatedDateTime);
@@ -92,9 +98,9 @@
         localStorage.setItem("events", JSON.stringify(events));
     });
 
-    function promptDeleteEvent(index: number) {
-        modalMode = 1;
-        selectedEventIndex = index;
+    function promptDeleteEvent(id: number) {
+        modalMode = 1; // Set modal to display delete confirmation
+        selectedEventIndex = events.indexOf(events.find(event => event.id === id)!);
         showModal = true;
     }
 
@@ -117,8 +123,8 @@
          </button>
       </div>
 
-      {#each events as event, i}
-         <div onclick={() => {openEditModal(i)}}
+      {#each sortedEvents as event, i}
+         <div onclick={() => {openEditModal(event.id)}}
               class="relative w-full h-32 md:h-40 lg:h-52 flex items-center justify-center rounded-lg overflow-hidden shadow-lg transition-all duration-300 mb-2 last:mb-0 cursor-pointer"
               style="background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0));">
 
@@ -140,7 +146,7 @@
                   </button>
 
                   <!-- Delete Button -->
-                  <button onclick={(event) => { promptDeleteEvent(i); event.stopPropagation() } }
+                  <button onclick={(event) => { promptDeleteEvent(event.id); event.stopPropagation() } }
                           class="bg-transparent border border-red-500 text-red-500 px-3 py-1 rounded-lg text-sm hover:bg-red-500 hover:text-white transition-all duration-200">
                      🗑 Delete
                   </button>

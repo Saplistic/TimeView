@@ -145,7 +145,7 @@
                   </button>
 
                   <!-- Delete Button -->
-                  <button onclick={(event) => { openDeleteModal(event.id); event.stopPropagation() } }
+                  <button onclick={(ev) => { openDeleteModal(event.id); ev.stopPropagation(); } }
                           class="bg-transparent border border-red-500 text-red-500 px-3 py-1 rounded-lg text-sm hover:bg-red-500 hover:text-white transition-all duration-200">
                      🗑 Delete
                   </button>

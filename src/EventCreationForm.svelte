@@ -2,18 +2,17 @@
    import type {oEvent} from "./types";
 
    export let saveEvent: (event: oEvent) => void;
-
    export let eventToEdit: oEvent | null = null;
 
    let event: oEvent = eventToEdit ??
-       {
-           id: -1,
-           name: "",
-           description: "",
-           dateTime: new Date(),
-           isLocal: false,
-           coverImgUrl: ""
-       };
+      {
+          id: -1,
+          name: "",
+          description: "",
+          dateTime: new Date(),
+          isLocal: false,
+          coverImgUrl: ""
+      };
 
    let today: Date = new Date()
    today.setHours(0, 0, 0, 0)
@@ -23,18 +22,18 @@
       : convertToLocalISO(today);
 
    function submit() {
-       if (!event.name) {
-           return alert("Please enter a name");
-       }
+      if (!event.name) {
+         return alert("Please enter a name");
+      }
 
-       let newDate = new Date(eventString);
+      let newDate = new Date(eventString);
 
-       if (isNaN(newDate.getTime())) {
-           return alert("Please enter a valid date");
-       }
-       event.dateTime = newDate;
+      if (isNaN(newDate.getTime())) {
+         return alert("Please enter a valid date");
+      }
+      event.dateTime = newDate;
 
-       saveEvent(event);
+      saveEvent(event);
    }
 
    // Helper function to format date to local ISO string for datetime-local input

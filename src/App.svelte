@@ -12,7 +12,7 @@
 
    let events: oEvent[] = $state<oEvent[]>([]); // List of events
    let sortedEvents: oEvent[] = $derived<oEvent[]>(events.slice().sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime())); // Events sorted by Date for displaying
-   var timeLeft = $state<string[]>([]); // List of updating time left for each event
+   let timeLeft = $state<string[]>([]); // List of updating time left for each event
 
    onMount(() => {
       const storedEvents = localStorage.getItem("events");
@@ -26,21 +26,15 @@
                : new Date(event.dateTime)
          }))
       }
-      timeLeft = sortedEvents.map(event => formatToTimer(event.dateTime));
 
       if (!localStorage.getItem("idCount")) { // Initialize idCount if it doesn't exist
-         localStorage.setItem("idCount", String(events.at(-1).id + 1 ?? 0));
+         localStorage.setItem("idCount", events.at(-1) ? String(events.at(-1).id + 1) : "0");
       }
 
+      timeLeft = sortedEvents.map(event => formatToTimer(event.dateTime));
       // Update timeLeft every second
       interval = setInterval(() => {
-         timeLeft = sortedEvents.map((event) => {
-            if (event.isLocal) { // Apply local timezone offset to the date when it's marked as 'isLocal'
-               let updatedDateTime = new Date(event.dateTime.getTime() + (new Date().getTimezoneOffset() * 60 * 1000));
-               return formatToTimer(updatedDateTime);
-            }
-            return formatToTimer(event.dateTime);
-         });
+         timeLeft = sortedEvents.map(event => formatToTimer(event.dateTime));
       }, 1000);
    });
 
@@ -72,18 +66,17 @@
    function openEditModal(id: number) {
       if (!editMode) return; // Only continue if edit mode is enabled
       modalMode = 0;  // Set modal to display create/edit form
-      selectedEventIndex = events.indexOf(events.find(event => event.id === id)!);
+      selectedEventIndex = events.findIndex(event => event.id === id);
       showModal = true;
    }
 
    function openDeleteModal(id: number) {
       modalMode = 1; // Set modal to display delete confirmation
-      selectedEventIndex = events.indexOf(events.find(event => event.id === id)!);
+      selectedEventIndex = events.findIndex(event => event.id === id);
       showModal = true;
    }
 
    function saveEvent(event: oEvent) {
-
       if(!events.includes(event)) { // If event doesnt refer to existing event -> Create new
          event.id = Number(localStorage.getItem("idCount"));
          localStorage.setItem("idCount", (event.id + 1).toString());
@@ -105,16 +98,17 @@
    }
 
    function formatToTimer(targetDate: Date): string {
-      var targetTime = targetDate.getTime();
-      let timeLeft = (targetTime - new Date().getTime());
+      const targetTime = targetDate.getTime();
+      const timeLeft = (targetTime - new Date().getTime());
       if (timeLeft < 0) return "";
 
-      let days, hours, minutes, seconds = 0;
+      let rest;
+      const days = Math.floor(rest = timeLeft / (1000 * 60 * 60 * 24));
+      const hours = Math.floor(rest = (rest % 1) * 24);
+      const minutes = Math.floor(rest = (rest % 1) * 60);
+      const seconds = Math.floor(rest = (rest % 1) * 60);
 
-      return Math.floor(days = timeLeft / (1000 * 60 * 60 * 24)) + ":" +
-              String(Math.floor(hours = (days % 1) * 24)).padStart(2, "0") + ":" +
-              String(Math.floor(minutes = (hours % 1) * 60)).padStart(2, "0") + ":" +
-              String(Math.floor(seconds = (minutes % 1) * 60)).padStart(2, "0");
+      return `${days}:${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
    }
 
 </script>

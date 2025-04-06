@@ -5,7 +5,7 @@
 
    export let eventToEdit: oEvent | null = null;
 
-   let event: oEvent = eventToEdit ? eventToEdit :
+   let event: oEvent = eventToEdit ??
        {
            id: -1,
            name: "",
@@ -15,10 +15,12 @@
            coverImgUrl: ""
        };
 
+   let today: Date = new Date()
+   today.setHours(0, 0, 0, 0)
    // we use a separate string for the datetime-local input
    let eventString = eventToEdit // If editing, use the event date, else use today's date
       ? convertToLocalISO(eventToEdit.dateTime)
-      : "";
+      : convertToLocalISO(today);
 
    function submit() {
        if (!event.name) {
@@ -61,7 +63,7 @@
       <label class="flex items-center space-x-2 text-white cursor-pointer">
          <input type="checkbox" bind:checked={event.isLocal}
                 class="w-5 h-5 appearance-none bg-gray-800 border border-gray-600 rounded-full checked:bg-blue-500 checked:border-blue-500 focus:ring focus:ring-blue-500 transition" />
-         <span class="text-gray-300">Use local time (e.g., New Year)</span>
+         <span class="text-gray-300">Mark date as local (updates to users timezone)</span>
       </label>
 
       <input type="text" placeholder="Cover Image URL" bind:value={event.coverImgUrl}

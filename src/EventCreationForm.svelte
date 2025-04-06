@@ -15,27 +15,17 @@
            coverImgUrl: ""
        };
 
-   let eventString =
-      (eventToEdit ? // Check if an Event exists (edit existing)
-          ( eventToEdit.isLocal ? // Then check whether the event's date is local (if not: convert UTC to local time for datetime-local element)
-            eventToEdit.dateTime.toISOString().slice(0, 16) : (new Date(eventToEdit.dateTime.valueOf()-eventToEdit.dateTime.getTimezoneOffset()*60000)).toISOString().slice(0, 16)
-          ) : ""
-      );
+   // we use a separate string for the datetime-local input
+   let eventString = eventToEdit // If editing, use the event date, else use today's date
+      ? convertToLocalISO(eventToEdit.dateTime)
+      : "";
 
    function submit() {
        if (!event.name) {
            return alert("Please enter a name");
        }
 
-       var newDate;
-
-       if (event.isLocal) {
-           newDate = new Date(eventString+"Z"); // Interpret time as UTC (Ignore your local timezone)
-       } else {
-           newDate = new Date(eventString); // Convert your local time to store as UTC
-       }
-       //date.toUTCString() // Displays the time in UTC
-       //date.toString() // Displays the time according to your local timezone
+       let newDate = new Date(eventString);
 
        if (isNaN(newDate.getTime())) {
            return alert("Please enter a valid date");
@@ -43,6 +33,13 @@
        event.dateTime = newDate;
 
        saveEvent(event);
+   }
+
+   // Helper function to format date to local ISO string for datetime-local input
+   function convertToLocalISO(date: Date): string {
+      // Take in date, and subtract its time offset
+      const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+      return localDate.toISOString().slice(0, 16);
    }
 
 </script>

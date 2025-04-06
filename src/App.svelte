@@ -19,10 +19,12 @@
 
       // Load events from localstorage & convert date objects
       if (storedEvents) {
-         events = JSON.parse(storedEvents).map((event: oEvent) => ({
+         events = JSON.parse(storedEvents).map((event) => ({
             ...event,
-            dateTime: new Date(event.dateTime)
-         }));
+            dateTime: event.isLocal
+               ? new Date(event.dateTime + (new Date(event.dateTime).getTimezoneOffset() * 60000)) // Apply local timezone offset
+               : new Date(event.dateTime)
+         }))
       }
       timeLeft = sortedEvents.map(event => formatToTimer(event.dateTime));
 
@@ -48,7 +50,13 @@
 
    // Save events to localstorage upon changes
    $effect(() => {
-      localStorage.setItem("events", JSON.stringify(events));
+      const eventsToSave = events.map(event => ({
+         ...event,
+         dateTime: event.isLocal
+            ? event.dateTime.getTime() - (event.dateTime.getTimezoneOffset() * 60000) // Remove local timezone offset upson saving
+            : event.dateTime.getTime() // Convert dateTime to timestamp
+      }));
+      localStorage.setItem("events", JSON.stringify(eventsToSave));
    });
 
    function closeModal() {

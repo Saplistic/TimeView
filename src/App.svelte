@@ -6,13 +6,25 @@
 
    let showModal: boolean = $state(false);
    let editMode: boolean = $state(false);
+   let enableSort: boolean = $state(true); // Enable sorting of events
    let modalMode: number = $state(0); // 0: Create/Edit, 1: Delete
    let selectedEventIndex: number | null = $state(null);
    let interval: number; // Interval for updating timeLeft
 
    let events: oEvent[] = $state<oEvent[]>([]); // List of events
-   let sortedEvents: oEvent[] = $derived<oEvent[]>(events.slice().sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime())); // Events sorted by Date for displaying
-   let timeLeft = $state<string[]>([]); // List of updating time left for each event
+   let eventsDisplayed: oEvent[] = $state<oEvent[]>([]); // Events to be displayed based on filters
+
+   let timeLeft = $state<string[]>([]);
+
+   $effect(() => {
+      let eventPipeline = events.slice(); // Create a shallow copy of events
+
+      if (enableSort) {
+         eventPipeline = eventPipeline.sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime());
+      }
+
+      eventsDisplayed = eventPipeline;
+   })
 
    onMount(() => {
       const storedEvents = localStorage.getItem("events");
@@ -31,10 +43,10 @@
          localStorage.setItem("idCount", events.at(-1) ? String(events.at(-1).id + 1) : "0");
       }
 
-      timeLeft = sortedEvents.map(event => formatToTimer(event.dateTime));
+      timeLeft = eventsDisplayed.map((event) => formatToTimer(event.dateTime));
       // Update timeLeft every second
       interval = setInterval(() => {
-         timeLeft = sortedEvents.map(event => formatToTimer(event.dateTime));
+         timeLeft = eventsDisplayed.map((event) => formatToTimer(event.dateTime));
       }, 1000);
    });
 
@@ -113,8 +125,8 @@
 
 </script>
 
-<main class="bg-gray-900">
-   <div class="flex flex-col w-full min-h-screen main p-4">
+<main class="bg-gray-900 min-h-screen text-white">
+   <div class="flex flex-col w-full max-w-4xl mx-auto p-6">
       <div class="m-4 flex gap-4">
          <button onclick={openCreateModal} class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
             Add Event
@@ -124,8 +136,17 @@
          </button>
       </div>
 
-      {#each sortedEvents as event, i}
-         <div onclick={() => {openEditModal(event.id)}}
+      <!-- New Controls Section -->
+      <div class="m-4 flex gap-4 items-center">
+         <label class="flex items-center">
+            <input type="checkbox" bind:checked={enableSort} class="mr-2" />
+            Sort Ascending
+         </label>
+      </div>
+
+      <!-- Event List -->
+      {#each eventsDisplayed as event, i}
+         <div onclick={() => openEditModal(event.id)}
               class="relative w-full h-32 md:h-40 lg:h-52 flex items-center justify-center rounded-lg overflow-hidden shadow-lg transition-all duration-300 mb-2 last:mb-0 cursor-pointer"
               style="background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0));">
 

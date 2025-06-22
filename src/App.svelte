@@ -7,6 +7,7 @@
    let showModal: boolean = $state(false);
    let editMode: boolean = $state(false);
    let enableSort: boolean = $state(true); // Enable sorting of events
+   let togglePastEvents: boolean = $state(false); // Toggle between past and future events
    let modalType: number = $state(0); // 0: Create/Edit, 1: Delete
    let selectedEventIndex: number | null = $state(null);
    let countdownInterval: number; // Interval for updating timeLeft
@@ -17,11 +18,18 @@
    let eventCountdowns = $state<string[]>([]);
 
    // Handle event sorting and filtering, triggered by changes in the filtering/sorting options
+   // ($effect listens to state changes from events, enableSort, and togglePastEvents)
    $effect(() => {
       let eventPipeline = events.slice(); // Create a shallow copy of events
 
+      if (togglePastEvents) {
+         eventPipeline = eventPipeline.filter((event) => event.dateTime.getTime() < Date.now());
+      } else {
+         eventPipeline = eventPipeline.filter((event) => event.dateTime.getTime() >= Date.now());
+      }
+
       if (enableSort) {
-         eventPipeline = eventPipeline.sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime());
+         eventPipeline = eventPipeline.sort((a, b) => b.dateTime.getTime() - a.dateTime.getTime());
       }
 
       eventsDisplayed = eventPipeline;
@@ -114,10 +122,13 @@
       const targetTime = targetDate.getTime();
       const timeLeft = targetTime - Date.now();
 
-      const days     = Math.floor(timeLeft                           / (1000 * 60 * 60 * 24));
-      const hours    = Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-      const minutes  = Math.floor((timeLeft % (1000 * 60 * 60))      / (1000 * 60));
-      const seconds  = Math.floor((timeLeft % (1000 * 60))           / 1000);
+      if (timeLeft < 0 && !togglePastEvents) return "Event Ended"; // Show "Event Ended" for past events in future view
+
+      const timeDifference = Math.abs(timeLeft);
+      const days     = Math.floor(timeDifference                           / (1000 * 60 * 60 * 24));
+      const hours    = Math.floor((timeDifference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes  = Math.floor((timeDifference % (1000 * 60 * 60))      / (1000 * 60));
+      const seconds  = Math.floor((timeDifference % (1000 * 60))           / 1000);
 
       return `${days}:${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
    }
@@ -135,13 +146,23 @@
          </button>
       </div>
 
-      <!-- New Controls Section -->
       <div class="m-4 flex gap-4 items-center">
          <label class="flex items-center">
             <input type="checkbox" bind:checked={enableSort} class="mr-2" />
             Sort Ascending
          </label>
+         <label class="flex items-center">
+            <input type="checkbox" bind:checked={togglePastEvents} class="mr-2" />
+            Show Past Events
+         </label>
+         <!-- Space reserved for future search bar -->
+         <!-- Example: <input type="text" placeholder="Search events..." class="bg-gray-800 text-white p-2 rounded" /> -->
       </div>
+
+      <!-- Dynamic Text Indicator -->
+      <h2 class="text-3xl font-bold m-4">
+         {togglePastEvents ? "Past Events" : "Upcoming Events"}
+      </h2>
 
       <!-- Event List -->
       {#each eventsDisplayed as event, i}
@@ -150,7 +171,9 @@
               style="background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0));">
 
             {#if event.coverImgUrl}
-               <div class="absolute inset-0 bg-cover bg-center opacity-30" style="background-image: url({event.coverImgUrl})"></div>
+               <div class="absolute inset-0 bg-cover bg-center opacity-30"
+                    style="background-image: url({event.coverImgUrl})">
+               </div>
             {/if}
 
             <!-- Overlay text -->

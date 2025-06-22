@@ -7,15 +7,16 @@
    let showModal: boolean = $state(false);
    let editMode: boolean = $state(false);
    let enableSort: boolean = $state(true); // Enable sorting of events
-   let modalMode: number = $state(0); // 0: Create/Edit, 1: Delete
+   let modalType: number = $state(0); // 0: Create/Edit, 1: Delete
    let selectedEventIndex: number | null = $state(null);
-   let interval: number; // Interval for updating timeLeft
+   let countdownInterval: number; // Interval for updating timeLeft
 
-   let events: oEvent[] = $state<oEvent[]>([]); // List of events
-   let eventsDisplayed: oEvent[] = $state<oEvent[]>([]); // Events to be displayed based on filters
+   let events: oEvent[] = $state<oEvent[]>([]); // List of source events
+   let eventsDisplayed: oEvent[] = $state<oEvent[]>([]); // Final processed list of events to display, filtered and sorted
 
-   let timeLeft = $state<string[]>([]);
+   let eventCountdowns = $state<string[]>([]);
 
+   // Handle event sorting and filtering, triggered by changes in the filtering/sorting options
    $effect(() => {
       let eventPipeline = events.slice(); // Create a shallow copy of events
 
@@ -27,34 +28,30 @@
    })
 
    onMount(() => {
-      const storedEvents = localStorage.getItem("events");
-
       // Load events from localstorage & convert date objects
+      const storedEvents = localStorage.getItem("events");
       if (storedEvents) {
-         events = JSON.parse(storedEvents).map((event) => ({
+         events = JSON.parse(storedEvents).map((event: any) => ({
             ...event,
             dateTime: event.isLocal
-               ? new Date(event.dateTime + (new Date(event.dateTime).getTimezoneOffset() * 60000)) // Apply local timezone offset
-               : new Date(event.dateTime)
-         }))
+                    ? new Date(event.dateTime + new Date(event.dateTime).getTimezoneOffset() * 60000) // Adjust for local timezone offset
+                    : new Date(event.dateTime)
+         }));
       }
 
-      if (!localStorage.getItem("idCount")) { // Initialize idCount if it doesn't exist
-         localStorage.setItem("idCount", events.at(-1) ? String(events.at(-1).id + 1) : "0");
-      }
-
-      timeLeft = eventsDisplayed.map((event) => formatToTimer(event.dateTime));
+      eventCountdowns = eventsDisplayed.map((event) => formatToTimer(event.dateTime));
       // Update timeLeft every second
-      interval = setInterval(() => {
-         timeLeft = eventsDisplayed.map((event) => formatToTimer(event.dateTime));
+      countdownInterval = setInterval(() => {
+         eventCountdowns = eventsDisplayed.map((event) => formatToTimer(event.dateTime));
       }, 1000);
    });
 
+   // Clear the countdown interval when the component is destroyed
    onDestroy(() => {
-      clearInterval(interval);
+      clearInterval(countdownInterval);
    });
 
-   // Save events to localstorage upon changes
+   // Update events in localstorage on event list changes
    $effect(() => {
       const eventsToSave = events.map(event => ({
          ...event,
@@ -70,28 +67,29 @@
    }
 
    function openCreateModal() {
-      modalMode = 0;
+      modalType = 0;
       selectedEventIndex = null; // Remove selection when Creating a new event
       showModal = true;
    }
 
    function openEditModal(id: number) {
       if (!editMode) return; // Only continue if edit mode is enabled
-      modalMode = 0;  // Set modal to display create/edit form
+      modalType = 0;  // Set modal to display create/edit form
       selectedEventIndex = events.findIndex(event => event.id === id);
       showModal = true;
    }
 
    function openDeleteModal(id: number) {
-      modalMode = 1; // Set modal to display delete confirmation
+      modalType = 1; // Set modal to display delete confirmation
       selectedEventIndex = events.findIndex(event => event.id === id);
       showModal = true;
    }
 
    function saveEvent(event: oEvent) {
-      if(!events.includes(event)) { // If event doesnt refer to existing event -> Create new
-         event.id = Number(localStorage.getItem("idCount"));
-         localStorage.setItem("idCount", (event.id + 1).toString());
+      if(!events.includes(event)) { // If event doesn't refer to existing event -> Create new
+         event.id = events.at(-1)
+             ? events.at(-1)!.id! + 1
+             : 0;
          events.push(event); // Add new event
       }
       selectedEventIndex = null;
@@ -109,16 +107,17 @@
       if (!editMode) selectedEventIndex = null; // Reset selection when exiting edit mode
    }
 
+   /**
+    * Formats the target date to a countdown string in the format "DD:HH:MM:SS".
+    */
    function formatToTimer(targetDate: Date): string {
       const targetTime = targetDate.getTime();
-      const timeLeft = (targetTime - new Date().getTime());
-      if (timeLeft < 0) return "";
+      const timeLeft = targetTime - Date.now();
 
-      let rest;
-      const days = Math.floor(rest = timeLeft / (1000 * 60 * 60 * 24));
-      const hours = Math.floor(rest = (rest % 1) * 24);
-      const minutes = Math.floor(rest = (rest % 1) * 60);
-      const seconds = Math.floor(rest = (rest % 1) * 60);
+      const days     = Math.floor(timeLeft                           / (1000 * 60 * 60 * 24));
+      const hours    = Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes  = Math.floor((timeLeft % (1000 * 60 * 60))      / (1000 * 60));
+      const seconds  = Math.floor((timeLeft % (1000 * 60))           / 1000);
 
       return `${days}:${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
    }
@@ -157,7 +156,7 @@
             <!-- Overlay text -->
             <div class="relative text-center text-white px-4">
                <h2 class="text-lg md:text-xl lg:text-2xl font-semibold tracking-wider">{event.name}</h2>
-               <p class="text-2xl md:text-3xl lg:text-4xl font-bold mt-1">{timeLeft[i]}</p>
+               <p class="text-2xl md:text-3xl lg:text-4xl font-bold mt-1">{eventCountdowns[i]}</p>
             </div>
 
             {#if editMode}
@@ -179,7 +178,7 @@
    </div>
 
    <Modal bind:show={showModal}>
-      {#if modalMode === 0}
+      {#if modalType === 0}
          <!-- Create/Edit -->
          <EventCreationForm saveEvent={saveEvent} eventToEdit={ (selectedEventIndex !== null) ? events[selectedEventIndex] : null }/>
          <div class="flex justify-end mt-6">
@@ -191,7 +190,7 @@
             </button>
          </div>
 
-      {:else if modalMode === 1}
+      {:else if modalType === 1}
          <!-- Delete Confirmation -->
          <p>Are you sure you permanently want to delete this event?</p>
 

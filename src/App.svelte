@@ -8,6 +8,7 @@
    let editMode: boolean = $state(false);
    let enableSort: boolean = $state(true); // Enable sorting of events
    let togglePastEvents: boolean = $state(false); // Toggle between past and future events
+   let searchQuery: string = $state(""); // Search functionality
    let modalType: number = $state(0); // 0: Create/Edit, 1: Delete
    let selectedEventIndex: number | null = $state(null);
    let countdownInterval: number; // Interval for updating timeLeft
@@ -26,6 +27,13 @@
          eventPipeline = eventPipeline.filter((event) => event.dateTime.getTime() < Date.now());
       } else {
          eventPipeline = eventPipeline.filter((event) => event.dateTime.getTime() >= Date.now());
+      }
+
+      if (searchQuery) {
+         eventPipeline = eventPipeline.filter((event) =>
+            event.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            event.description.toLowerCase().includes(searchQuery.toLowerCase())
+         );
       }
 
       if (enableSort) {
@@ -48,8 +56,8 @@
       }
 
       eventCountdowns = eventsDisplayed.map((event) => formatToTimer(event.dateTime));
-      // Update timeLeft every second
       countdownInterval = setInterval(() => {
+         // Recalculate countdowns for the current displayed events
          eventCountdowns = eventsDisplayed.map((event) => formatToTimer(event.dateTime));
       }, 1000);
    });
@@ -149,14 +157,13 @@
       <div class="m-4 flex gap-4 items-center">
          <label class="flex items-center">
             <input type="checkbox" bind:checked={enableSort} class="mr-2" />
-            Sort Ascending
+            Sort
          </label>
          <label class="flex items-center">
             <input type="checkbox" bind:checked={togglePastEvents} class="mr-2" />
             Show Past Events
          </label>
-         <!-- Space reserved for future search bar -->
-         <!-- Example: <input type="text" placeholder="Search events..." class="bg-gray-800 text-white p-2 rounded" /> -->
+         <input type="text" bind:value={searchQuery} placeholder="Search events..." class="bg-gray-800 text-white p-2 rounded" />
       </div>
 
       <!-- Dynamic Text Indicator -->

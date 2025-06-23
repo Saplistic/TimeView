@@ -41,7 +41,10 @@
       }
 
       eventsDisplayed = eventPipeline;
-   })
+
+      // Update countdowns to match the sorted and filtered events
+      eventCountdowns = eventPipeline.map((event) => formatToTimer(event.dateTime));
+   });
 
    onMount(() => {
       // Load events from localstorage & convert date objects

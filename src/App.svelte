@@ -109,12 +109,19 @@
    }
 
    function saveEvent(event: oEvent) {
-      if(!events.includes(event)) { // If event doesn't refer to existing event -> Create new
+      const eventExists: boolean = events.some(e => e.id === event.id);
+
+      if (selectedEventIndex && eventExists) {
+         events[selectedEventIndex!] = event; // Update existing event
+      } else if (!selectedEventIndex && !eventExists) {
          event.id = events.at(-1)
-             ? events.at(-1)!.id! + 1
-             : 0;
-         events.push(event); // Add new event
+            ? events.at(-1)!.id! + 1
+            : 0;
+         events.push(event); // Create new event
+      } else {
+         return alert("Error saving: Event ID already exists or no event selected.");
       }
+
       selectedEventIndex = null;
       showModal = false;
    }

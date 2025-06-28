@@ -4,20 +4,23 @@
    export let saveEvent: (event: oEvent) => void;
    export let eventToEdit: oEvent | null = null;
 
-   let event: oEvent = eventToEdit ??
-      {
-          id: -1,
-          name: "",
-          description: "",
-          dateTime: new Date(),
-          isLocal: false,
-          coverImgUrl: ""
+   // Create a copy of the eventToEdit object to avoid direct mutation
+   let event: oEvent = eventToEdit
+      ? { ...eventToEdit }
+      : {
+         id: -1,
+         name: "",
+         description: "",
+         dateTime: new Date(),
+         isLocal: false,
+         coverImgUrl: ""
       };
 
-   let today: Date = new Date()
-   today.setHours(0, 0, 0, 0)
-   // we use a separate string for the datetime-local input
-   let eventString = eventToEdit // If editing, use the event date, else use today's date
+   let today: Date = new Date();
+   today.setHours(0, 0, 0, 0);
+
+   // Use a separate string for the datetime-local input
+   let eventDateTimeString = eventToEdit
       ? convertToLocalISO(eventToEdit.dateTime)
       : convertToLocalISO(today);
 
@@ -26,14 +29,14 @@
          return alert("Please enter a name");
       }
 
-      let newDate = new Date(eventString);
+      let newDate = new Date(eventDateTimeString);
 
       if (isNaN(newDate.getTime())) {
          return alert("Please enter a valid date");
       }
       event.dateTime = newDate;
 
-      saveEvent(event);
+      saveEvent(event); // Pass the updated event to the parent component
    }
 
    // Helper function to format date to local ISO string for datetime-local input
@@ -56,7 +59,7 @@
       <textarea placeholder="Description" bind:value={event.description}
                 class="w-full p-2 border border-gray-700 bg-gray-800 text-white rounded-lg max-h-48"></textarea>
 
-      <input type="datetime-local" bind:value={eventString}
+      <input type="datetime-local" bind:value={eventDateTimeString}
              class="w-full p-2 border border-gray-700 bg-gray-800 text-white rounded-lg" />
 
       <label class="flex items-center space-x-2 text-white cursor-pointer">

@@ -36,9 +36,13 @@
          );
       }
 
-      if (enableSort) {
-         eventPipeline = eventPipeline.sort((a, b) => b.dateTime.getTime() - a.dateTime.getTime());
-      }
+       if (enableSort) {
+           eventPipeline = eventPipeline.sort((a, b) =>
+               togglePastEvents // Sorting direction is based on togglePastEvents
+                   ? b.dateTime.getTime() - a.dateTime.getTime()
+                   : a.dateTime.getTime() - b.dateTime.getTime()
+           );
+       }
 
       eventsDisplayed = eventPipeline;
 

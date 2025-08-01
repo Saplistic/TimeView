@@ -9,15 +9,16 @@
    let enableSort: boolean = $state(true); // Enable sorting of events
    let togglePastEvents: boolean = $state(false); // Toggle between past and future events
    let searchQuery: string = $state(""); // Search functionality
-   let modalType: number = $state(0); // 0: Create/Edit, 1: Delete
+   let modalType: number = $state(0); // 0: Create/Edit, 1: Delete, 2: Export, 3: Import
    let selectedEventIndex: number | null = $state(null);
    let countdownInterval: number; // Interval for updating timeLeft
 
    let events: oEvent[] = $state<oEvent[]>([]); // List of source events
    let eventsDisplayed: oEvent[] = $state<oEvent[]>([]); // Final processed list of events to display, filtered and sorted
-
    let eventCountdowns = $state<string[]>([]);
 
+   let jsonPreview: string = $state(""); // Holds JSON data for previewing in the modal
+   let replaceEventsImport: boolean = $state(false);
    // Handle event sorting and filtering, triggered by changes in the filtering/sorting options
    // ($effect listens to state changes from events, enableSort, and togglePastEvents)
    $effect(() => {
@@ -108,6 +109,30 @@
       showModal = true;
    }
 
+   /**
+    * Open export modal, and transform & format events to preview export
+    */
+   function openExportModal() {
+      modalType = 2; // Set modal to export mode
+
+      const eventsToSave = events.map(({ id, ...event }) => ({ // Exclude ID's from export
+         ...event,
+         dateTime: event.isLocal
+            ? event.dateTime.getTime() - (event.dateTime.getTimezoneOffset() * 60000) // Unapply local timezone offset upon saving
+            : event.dateTime.getTime() // Convert dateTime to timestamp
+      }))
+
+      jsonPreview = JSON.stringify(eventsToSave, null, 2);
+      showModal = true;
+   }
+
+   function openImportModal() {
+      modalType = 3; // Set modal to import mode
+      replaceEventsImport = false;
+      jsonPreview = ""; // Clear JSON preview for importing
+      showModal = true;
+   }
+
    function saveEvent(event: oEvent) {
       const eventExists: boolean = events.some(e => e.id === event.id);
 
@@ -132,9 +157,69 @@
       showModal = false;
    }
 
+   function saveExportedFile() {
+      const blob = new Blob([jsonPreview], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "events.json";
+      a.click();
+
+      URL.revokeObjectURL(url);
+   }
+
+   function importFromPreview() {
+      try {
+         const importedEvents: any[] = JSON.parse(jsonPreview);
+
+         if (replaceEventsImport) {
+            if (!confirm(`Are you sure you want to replace all existing events (${events.length})? This cannot be undone`)) return;
+            events = [];
+         }
+
+         // Assign new IDs to imported events
+         const maxId = events.length > 0 ? Math.max(...events.map(e => e.id)) : -1;
+         const newEvents: oEvent[] = importedEvents.map((event, index) => ({
+            ...event,
+            id: maxId + index + 1,
+            dateTime: event.isLocal
+               ? new Date(event.dateTime + new Date(event.dateTime).getTimezoneOffset() * 60000) // Adjust for local timezone offset
+               : new Date(event.dateTime)
+         }));
+
+         events = [...events, ...newEvents]; // Append events
+
+         showModal = false;
+         jsonPreview = "";
+
+         alert("Events imported successfully!");
+      } catch (error) {
+         alert("Failed to import events. Please ensure the JSON is valid.");
+      }
+   }
+
    function toggleEditMode() {
       editMode = !editMode;
       if (!editMode) selectedEventIndex = null; // Reset selection when exiting edit mode
+   }
+
+   function handleFileImport(event: Event) {
+       const input = event.target as HTMLInputElement;
+       if (input.files && input.files[0]) {
+           const file = input.files[0];
+           const reader = new FileReader();
+
+           reader.onload = () => {
+               try {
+                   jsonPreview = reader.result as string;
+               } catch (error) {
+                   alert("Invalid JSON file. Please upload a valid JSON file.");
+               }
+           };
+
+           reader.readAsText(file);
+       }
    }
 
    /**
@@ -166,6 +251,14 @@
          <button onclick={toggleEditMode} class="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded">
             {editMode ? "Exit Edit Mode" : "Edit Events"}
          </button>
+         {#if editMode}
+            <button onclick={openExportModal} class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+               Export Events
+            </button>
+            <button onclick={openImportModal} class="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded">
+               Import Events
+            </button>
+         {/if}
       </div>
 
       <div class="m-4 flex gap-4 items-center">
@@ -233,7 +326,6 @@
                Save
             </button>
          </div>
-
       {:else if modalType === 1}
          <!-- Delete Confirmation -->
          <p>Are you sure you permanently want to delete this event?</p>
@@ -244,6 +336,38 @@
             </button>
             <button onclick="{deleteEvent}" class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600">
                Confirm
+            </button>
+         </div>
+      {:else if modalType === 2}
+         <!-- Export -->
+         <p class="mb-4">Below is the JSON representation of your events. You can copy it or save it as a file.</p>
+         <textarea readonly class="w-full h-40 p-2 bg-gray-800 text-white rounded-lg mb-4">{jsonPreview}</textarea>
+         <div class="flex justify-end">
+            <button onclick={closeModal} class="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 mr-2">
+               Close
+            </button>
+            <button onclick={saveExportedFile} class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+               Save as File
+            </button>
+         </div>
+      {:else if modalType === 3}
+         <!-- Import -->
+         <p class="mb-4">Paste or upload your JSON data below to import events. Ensure the format is correct.</p>
+         <textarea bind:value={jsonPreview} class="w-full h-40 p-2 bg-gray-800 text-white rounded-lg mb-4"></textarea>
+         <div class="mb-4 flex items-center gap-4">
+            <label class="block text-sm font-medium text-gray-300">Upload JSON File:</label>
+            <input type="file" accept=".json" onchange={handleFileImport} class="text-sm text-gray-400 bg-gray-800 rounded-lg border border-gray-600 cursor-pointer focus:outline-none" />
+         </div>
+         <label class="flex items-center">
+            <input type="checkbox" bind:checked={replaceEventsImport} class="mr-2" />
+            Replace Existing?
+         </label>
+         <div class="flex justify-end">
+            <button onclick={closeModal} class="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 mr-2">
+               Cancel
+            </button>
+            <button onclick={importFromPreview} class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+               Import
             </button>
          </div>
       {/if}
